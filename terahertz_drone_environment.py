@@ -7,7 +7,7 @@ import pandas as pd
 
 from math import log2
 
-from gymnasium.envs.registration import register
+#from gymnasium.envs.registration import register
 
 
 
@@ -41,7 +41,7 @@ class thz_drone_env(gym.Env):
                 "distance": spaces.Discrete(3), # 10m, 50m, 100m
                 "path_loss": spaces.Box(110, 200, shape=(self.n_channels), dtype=float), # as dB
                 "noise_power": spaces.Box(0, 200, shape=(self.n_channels), dtype=float), # as dB (don't know what values to put)
-
+                "capacity": spaces.Box(10e-4,10e4, dtype=int)
             }
         )
 
@@ -77,7 +77,8 @@ class thz_drone_env(gym.Env):
             "power": self._power,
             "distance": self._distance,
             "path_loss": self._path_loss,
-            "noise_power": self._noise_power
+            "noise_power": self._noise_power,
+            "capacity": self._capacity
         }
 
     def pow_30(self, channels_obs=None, power_obs=None):
@@ -141,53 +142,18 @@ class thz_drone_env(gym.Env):
             noise_power_pd = self.noise_power_100m
 
 
-        path_loss=path_loss.to_numpy(dtype=float)
-        noise_power = noise_power.to_numpy(dtype=float)
+        path_loss=path_loss_pd.to_numpy(dtype=float)
+        noise_power = noise_power_pd.to_numpy(dtype=float)
 
         return path_loss, noise_power, path_loss_pd, noise_power_pd
 
+    def calc_capacity(self, path_loss_pd, noise_power_pd, power_obs=None):
 
-    def reset(self, seed=None, options=None):
-        # We need the following line to seed self.np_random
-        super().reset(seed=seed)
-
-        self._channels=self.np_random.integers(0, 2, size=self.n_channels, dtype=int)
-        self._power = self.np_random.integers(0, self.P_T, size=self.n_channels, dtype=int)
-        self._power=self.pow_30(self._channels, self._power)
-
-        self._distance=self.np_random.integers(0, 3, dtype=int)
-
-        self._path_loss, self._noise_power, path_loss_pd, noise_power_pd = self.channel_info(self._distance)
-
-
-        observation = self._get_obs()
-        #info = self._get_info()
-
-
-        #return observation, info
-        return observation
-
-    def step(self, action):
-
-        observation=self._get_obs()
-
-
-        self._distance = observation["distance"]
-        self._path_loss, self._noise_power, path_loss_pd, noise_power_pd = self.channel_info(self._distance)
-
-        self._channels = action["channels"]
-        self._power=action["power"]
-        self._power = self.pow_30(self._channels, self._power)
-
-
-
-        #terminated = np.array_equal(self._agent_location, self._target_location)
-
-
+        if power_obs is None:
+            power_obs = self._power
 
         Capacity=0
-
-        for channel_iter, power_iter in enumerate(observation["power"]):
+        for channel_iter, power_iter in enumerate(power_obs):
             freq=(channel_iter*0.1)+0.8
             freq_list=path_loss_pd["frequency"].tolist()
 
@@ -202,9 +168,63 @@ class thz_drone_env(gym.Env):
 
             Capacity+=0.1*log2(1+SNR)
 
-        reward = Capacity
+        return Capacity
 
 
+
+    def reset(self, seed=None, options=None):
+        # We need the following line to seed self.np_random
+        super().reset(seed=seed)
+
+        self._channels=self.np_random.integers(0, 2, size=self.n_channels, dtype=int)
+        self._power = self.np_random.integers(0, self.P_T, size=self.n_channels, dtype=int)
+        self._power=self.pow_30(self._channels, self._power)
+
+
+
+        self._distance=self.np_random.integers(0, 3, dtype=int)
+
+        self._path_loss, self._noise_power, path_loss_pd, noise_power_pd = self.channel_info(self._distance)
+
+        self._capacity = self.calc_capacity(self._power, path_loss_pd, noise_power_pd)
+
+
+        observation = self._get_obs()
+        #info = self._get_info()
+
+
+        #return observation, info
+        return observation
+
+    def step(self, action):
+
+        observation=self._get_obs()# if this does not work, take observation as an input to step function
+
+
+        self._distance = observation["distance"]
+        self._path_loss, self._noise_power, path_loss_pd, noise_power_pd = self.channel_info(self._distance)
+
+        self._capacity= observation["capacity"] #old capacity
+
+        self._channels = action["channels"]
+        self._power=action["power"]
+        self._power = self.pow_30(self._channels, self._power)
+
+
+
+        #terminated = np.array_equal(self._agent_location, self._target_location)
+
+
+
+
+
+
+        Capacity=self.calc_capacity(self._power, path_loss_pd, noise_power_pd) # new capacity
+
+
+        reward = self._capacity - Capacity #positive reward if capacity increased, negative reward if capacity decreased
+
+        self._capacity=Capacity #assign new capacity as the observation
 
 
         observation = self._get_obs()
