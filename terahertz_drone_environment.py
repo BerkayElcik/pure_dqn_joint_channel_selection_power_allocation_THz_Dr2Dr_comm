@@ -5,9 +5,12 @@ from gymnasium import spaces
 from bisect import bisect_left
 import pandas as pd
 
-from math import log2
+import math
+from setuptools import setup
 
-from gymnasium.envs.registration import register
+
+
+#from gymnasium.envs.registration import register
 
 
 
@@ -19,29 +22,80 @@ from gymnasium.envs.registration import register
 class thz_drone_env(gym.Env):
     #metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 4}
 
-    def __init__(self, render_mode=None, n_channels=35, P_T=30):
+    def __init__(self, render_mode=None, n_channels=1217, P_T=1, freq_of_movement=0.1):
+
+        path0 = r"data/LBLRTM_H1_0.1_H2_0.1_ZANGLE_90_RANGE_km_0.001_Season_6_data.csv"
+        path0 = path0.replace('\\', '\\\\')
+
+        path1 = r"data/LBLRTM_H1_0.1_H2_0.1_ZANGLE_90_RANGE_km_0.011_Season_6_data.csv"
+        path1 = path1.replace('\\', '\\\\')
+
+        path2 = r"data/LBLRTM_H1_0.1_H2_0.1_ZANGLE_90_RANGE_km_0.021_Season_6_data.csv"
+        path2 = path2.replace('\\', '\\\\')
+
+        path3 = r"data/LBLRTM_H1_0.1_H2_0.1_ZANGLE_90_RANGE_km_0.031_Season_6_data.csv"
+        path3 = path3.replace('\\', '\\\\')
+
+        path4 = r"data/LBLRTM_H1_0.1_H2_0.1_ZANGLE_90_RANGE_km_0.041_Season_6_data.csv"
+        path4 = path4.replace('\\', '\\\\')
+
+        path5 = r"data/LBLRTM_H1_0.1_H2_0.1_ZANGLE_90_RANGE_km_0.051_Season_6_data.csv"
+        path5 = path5.replace('\\', '\\\\')
+
+        path6 = r"data/LBLRTM_H1_0.1_H2_0.1_ZANGLE_90_RANGE_km_0.061_Season_6_data.csv"
+        path6 = path6.replace('\\', '\\\\')
+
+        path7 = r"data/LBLRTM_H1_0.1_H2_0.1_ZANGLE_90_RANGE_km_0.071_Season_6_data.csv"
+        path7 = path7.replace('\\', '\\\\')
+
+        path8 = r"data/LBLRTM_H1_0.1_H2_0.1_ZANGLE_90_RANGE_km_0.081_Season_6_data.csv"
+        path8 = path8.replace('\\', '\\\\')
+
+        path9 = r"data/LBLRTM_H1_0.1_H2_0.1_ZANGLE_90_RANGE_km_0.091_Season_6_data.csv"
+        path9 = path9.replace('\\', '\\\\')
+
+        path10 = r"data/LBLRTM_H1_0.1_H2_0.1_ZANGLE_90_RANGE_km_0.101_Season_6_data.csv"
+        path10 = path10.replace('\\', '\\\\')
+
+
+
         self.n_channels = n_channels
-        #self.L=L
         self.P_T=P_T
+        self.freq_of_movement=freq_of_movement
 
-        self.path_loss_10m = pd.read_csv("path_loss_for_10m")
-        self.path_loss_50m = pd.read_csv("path_loss_for_50m")
-        self.path_loss_100m = pd.read_csv("path_loss_for_100m")
+        self.transmittance0 = pd.read_csv(path0, header=None)
+        self.transmittance0 = self.transmittance0.set_axis(['vapor', 'transmittance'], axis=1)
+        self.transmittance1 = pd.read_csv(path1, header=None)
+        self.transmittance1 = self.transmittance1.set_axis(['vapor', 'transmittance'], axis=1)
+        self.transmittance2 = pd.read_csv(path2, header=None)
+        self.transmittance2 = self.transmittance2.set_axis(['vapor', 'transmittance'], axis=1)
+        self.transmittance3 = pd.read_csv(path3, header=None)
+        self.transmittance3 = self.transmittance3.set_axis(['vapor', 'transmittance'], axis=1)
+        self.transmittance4 = pd.read_csv(path4, header=None)
+        self.transmittance4 = self.transmittance4.set_axis(['vapor', 'transmittance'], axis=1)
+        self.transmittance5 = pd.read_csv(path5, header=None)
+        self.transmittance5 = self.transmittance5.set_axis(['vapor', 'transmittance'], axis=1)
+        self.transmittance6 = pd.read_csv(path6, header=None)
+        self.transmittance6 = self.transmittance6.set_axis(['vapor', 'transmittance'], axis=1)
+        self.transmittance7 = pd.read_csv(path7, header=None)
+        self.transmittance7 = self.transmittance7.set_axis(['vapor', 'transmittance'], axis=1)
+        self.transmittance8 = pd.read_csv(path8, header=None)
+        self.transmittance8 = self.transmittance8.set_axis(['vapor', 'transmittance'], axis=1)
+        self.transmittance9 = pd.read_csv(path9, header=None)
+        self.transmittance9 = self.transmittance9.set_axis(['vapor', 'transmittance'], axis=1)
+        self.transmittance10 = pd.read_csv(path10, header=None)
+        self.transmittance10 = self.transmittance10.set_axis(['vapor', 'transmittance'], axis=1)
 
-        self.noise_power_10m = pd.read_csv("noise_power_10m")
-        self.noise_power_50m = pd.read_csv("noise_power_50m")
-        self.noise_power_100m = pd.read_csv("noise_power_100m")
+
+
 
         self.observation_space = spaces.Dict(
             {
                 "channels": spaces.MultiBinary(self.n_channels),
-                "power": spaces.Box(0, self.P_T, shape=(self.n_channels,), dtype=int),
-                # n_channels(0.8 THz - 4.3 THz) as center frequencies for 0.1 THz wide boxes
-                # 0 dBm corresoponds to 1mW of power, not 0, but I guess it can be considered 0 compared to 30 dBm which corresponds to 10^3 mW
-                "distance": spaces.Discrete(3), # 10m, 50m, 100m
-                "path_loss": spaces.Box(110, 200, shape=(self.n_channels), dtype=float), # as dB
-                "noise_power": spaces.Box(0, 200, shape=(self.n_channels), dtype=float), # as dB (don't know what values to put)
-
+                # n_channels(0.75 THz - 4.4 THz) as center frequencies for 0.3 GHz wide boxes
+                "distance": spaces.Discrete(11),# 0.001 km, 0.011 km, 0.021 km, 0.031 km, 0.041 km, 0.051 km, 0.061 km, 0.071 km, 0.081 km, 0.091 km, 0.101 km
+                "transmittance": spaces.Box(0, 1, shape=(self.n_channels,), dtype=np.float32),
+                #"capacity": spaces.Box(10e-4,10e4, dtype=np.int64)
             }
         )
 
@@ -60,26 +114,63 @@ class thz_drone_env(gym.Env):
         )
         """
 
-
+        """
         self.action_space = spaces.Dict(
             {
                 "channels": spaces.MultiBinary(self.n_channels),
-                "power": spaces.Box(0, self.P_T, shape=(self.n_channels,), dtype=int),
+                #"power": spaces.Box(0, self.P_T, shape=(self.n_channels,), dtype=int),
                 # n_channels(0.8 THz - 4.3 THz) as center frequencies for 0.1 THz wide boxes
                 # 0 dBm corresoponds to 1mW of power, not 0, but I guess it can be considered 0 compared to 30 dBm which corresponds to 10^3 mW
             }
         )
-        #self.action_space = spaces.Box(0, self.P_T, shape=(self.n_channels,), dtype=int)
+        """
+        #Multiple channel selections for 1 action
+
+        """
+        self.action_space = spaces.Dict(
+            {
+                "add_channel": spaces.Box(-1, self.n_channels-1, shape=(10,), dtype=np.int32),
+                "remove_channel": spaces.Box(-1, self.n_channels-1, shape=(10,), dtype=np.int32),
+
+            }
+        )
+        """
+
+        # Multiple channel selections for 1 action
+        """
+        action_array = (self.n_channels+1) * np.ones(10)
+        self.action_space = spaces.MultiDiscrete([action_array,action_array])
+        """
+
+
+        #Single channel selection for 1 action
+        """
+        self.action_space = spaces.Dict(
+            {
+                "add_channel": spaces.Discrete(self.n_channels + 1, start=-1),
+                "remove_channel": spaces.Discrete(self.n_channels + 1, start=-1),
+
+            }
+        )
+        """
+        self.action_space = spaces.MultiDiscrete([self.n_channels+1, self.n_channels+1])
+
+
+
 
     def _get_obs(self):
         return {
             "channels": self._channels,
-            "power": self._power,
             "distance": self._distance,
-            "path_loss": self._path_loss,
-            "noise_power": self._noise_power
+            "transmittance": self._transmittance,
         }
 
+    def _get_info(self):
+        return {
+            "no_of_channels": np.sum(self._channels),
+            "capacity": self._capacity
+        }
+    """
     def pow_30(self, channels_obs=None, power_obs=None):
         if channels_obs is None:
             channels_obs = self._channels
@@ -107,13 +198,55 @@ class thz_drone_env(gym.Env):
                 power_obs[non_zero_indices[-1]] += discrepancy  # Adjust the last non-zero element to fix the sum
 
         return power_obs
+        
+    """
 
+
+    def EP(self, channels_obs=None, total_power=None):
+        if channels_obs is None:
+            channels_obs = self._channels
+        if total_power is None:
+            total_power = self.P_T
+
+        # Ensure it's a numpy array
+        channels_obs = np.array(channels_obs)
+
+        print("channels_obs"+str(channels_obs))
+        print(channels_obs.shape)
+
+        # Number of active channels
+        active_channels = np.sum(channels_obs)
+
+        print("active_channels"+str(active_channels))
+
+        # If no active channels, no power is allocated
+        if active_channels == 0:
+            return np.zeros_like(channels_obs)
+
+        print("initial"+str(np.zeros_like(channels_obs)))
+
+        # Initialize power allocation
+        power_allocation = np.zeros_like(channels_obs, dtype=np.float32)
+
+        # Equal power distribution to active channels (for simplicity)
+        power_per_channel = total_power / active_channels
+
+        print("power_per_channel"+str(power_per_channel))
+
+        # Allocate power to active channels (where channel_obs == 1)
+        power_allocation[channels_obs == 1] = power_per_channel
+
+        return power_allocation
+
+
+
+    """
     def take_closest(self, myList, myNumber):
-        """
-        Assumes myList is sorted. Returns closest value to myNumber.
+       
+        #Assumes myList is sorted. Returns closest value to myNumber.
 
-        If two numbers are equally close, return the smallest number.
-        """
+        #If two numbers are equally close, return the smallest number.
+       
         pos = bisect_left(myList, myNumber)
         if pos == 0:
             return myList[0]
@@ -125,59 +258,192 @@ class thz_drone_env(gym.Env):
             return after
         else:
             return before
+    """
 
     def channel_info(self, distance):
         if distance is None:
             distance = self._distance
 
-        if distance==0:
-            path_loss_pd=self.path_loss_10m
-            noise_power_pd=self.noise_power_10m
-        elif distance==1:
-            path_loss_pd = self.path_loss_50m
-            noise_power_pd = self.noise_power_50m
-        elif distance==2:
-            path_loss_pd = self.path_loss_100m
-            noise_power_pd = self.noise_power_100m
+        if distance == 0:
+            transmittance = self.transmittance0
+        elif distance == 1:
+            transmittance = self.transmittance1
+        elif distance == 2:
+            transmittance = self.transmittance2
+        elif distance == 3:
+            transmittance = self.transmittance3
+        elif distance == 4:
+            transmittance = self.transmittance4
+        elif distance == 5:
+            transmittance = self.transmittance5
+        elif distance == 6:
+            transmittance = self.transmittance6
+        elif distance == 7:
+            transmittance = self.transmittance7
+        elif distance == 8:
+            transmittance = self.transmittance8
+        elif distance == 9:
+            transmittance = self.transmittance9
+        elif distance == 10:
+            transmittance = self.transmittance10
+
+        transmittance=transmittance["transmittance"].to_numpy()
+
+        transmittance=transmittance[:1217]
+
+        return transmittance
+
+    def calc_path_gain(self, freq, tau, distance=None):
+        if distance is None:
+            distance = self._distance
+
+        c=299792458
+        spread_gain=c/(4*math.pi*freq*distance)
+
+        absorption_gain=math.sqrt(tau)
+
+        path_gain=spread_gain*absorption_gain
+
+        return path_gain
+
+    def calc_noise_power(self, tau, T0):
+
+        """
+        integral kısmını sor
+        """
+
+        boltzman_constant=1.38e-23
+
+        emmisivity=1-tau
+        T_noise=T0*emmisivity
+
+        noise_power=boltzman_constant*T_noise*0.0003
+
+        return noise_power
 
 
-        path_loss=path_loss.to_numpy(dtype=float)
-        noise_power = noise_power.to_numpy(dtype=float)
+    def calc_capacity(self, channel_obs, transmittance, distance):
 
-        return path_loss, noise_power, path_loss_pd, noise_power_pd
+        if channel_obs is None:
+            channel_obs = self._channels
+        if transmittance is None:
+            transmittance=self._transmittance
+        if distance is None:
+            distance=self._distance
+
+        power_alloc=self.EP(channel_obs, self.P_T)
+
+
+        Capacity=0
+        for channel_iter, power_iter in enumerate(power_alloc):
+
+            freq=(channel_iter*0.0003)+0.75
+
+            tau=transmittance[channel_iter]
+
+            path_gain=self.calc_path_gain(freq, tau, distance)
+
+            temprature=14+273 #average temprature 1 km above sea level in Kelvin
+
+            noise_power=self.calc_noise_power(tau, T0=temprature)
+
+            SNR= (power_iter*path_gain)/noise_power
+
+            Capacity+=0.1*math.log2(1+SNR)
+
+        return Capacity
+
+    def bin_array(self, array, m=None):
+        #only input numpy array or a single value, never input list, dict, tuple etc
+        #written the code like this in case I want to return back to the version where the agent adds or removes severel channels in a single action
+        if m is None:
+            m = self.n_channels
+
+        if not isinstance(array, np.ndarray):
+            array = np.array([array])
+
+        changed_channel=np.zeros(m)
+        for disc in array:
+            if disc != -1:
+                changed_channel[disc]=1
+        return changed_channel
+
+
 
 
     def reset(self, seed=None, options=None):
         # We need the following line to seed self.np_random
         super().reset(seed=seed)
 
-        self._channels=self.np_random.integers(0, 2, size=self.n_channels, dtype=int)
-        self._power = self.np_random.integers(0, self.P_T, size=self.n_channels, dtype=int)
-        self._power=self.pow_30(self._channels, self._power)
+        self._channels=self.np_random.integers(0, 2, size=self.n_channels, dtype=np.int32)
+        #self._power = self.np_random.integers(0, self.P_T, size=self.n_channels, dtype=int)
+        #self._power=self.pow_30(self._channels, self._power)
 
-        self._distance=self.np_random.integers(0, 3, dtype=int)
 
-        self._path_loss, self._noise_power, path_loss_pd, noise_power_pd = self.channel_info(self._distance)
+
+        self._distance=self.np_random.integers(0, 11, dtype=np.int32)
+
+        self._transmittance = self.channel_info(self._distance)
+
+        print("reset observation")
+        print(self._channels)
+        print(self._channels.size)
+        print(self._distance)
+        print(self._distance.size)
+        print(self._transmittance)
+        print(self._transmittance.size)
+
+
+        self._capacity = self.calc_capacity(self._channels, self._transmittance, self._distance)
 
 
         observation = self._get_obs()
-        #info = self._get_info()
+        print(observation)
+        info = self._get_info()
+        print(info)
 
 
         #return observation, info
-        return observation
+        return observation, info
 
     def step(self, action):
+        # if this does not work, take observation as an input to step function
 
-        observation=self._get_obs()
+        if action[0]==-23 and action[1]==-23:
+            action=self.action_space.sample()
 
 
-        self._distance = observation["distance"]
-        self._path_loss, self._noise_power, path_loss_pd, noise_power_pd = self.channel_info(self._distance)
 
-        self._channels = action["channels"]
-        self._power=action["power"]
-        self._power = self.pow_30(self._channels, self._power)
+
+        print("action"+str(action))
+
+        #observation=self._get_obs()
+        info=self._get_info()
+
+        #self._channels=observation["channels"]
+
+        #self._distance = observation["distance"]
+
+        self._capacity= info["capacity"] #old capacity
+
+
+        added_channels_array=action[0]
+        added_channels_array -= 1
+        removed_channels_array=action[1]
+        removed_channels_array -= 1
+
+
+        added_channels=self.bin_array(added_channels_array)
+        removed_channels=self.bin_array(removed_channels_array)
+
+        self._channels = np.clip(
+            self._channels+added_channels-removed_channels, 0, 1)
+
+
+
+
+        #self._power=action["power"]
+        #self._power = self.pow_30(self._channels, self._power)
 
 
 
@@ -185,34 +451,45 @@ class thz_drone_env(gym.Env):
 
 
 
-        Capacity=0
-
-        for channel_iter, power_iter in enumerate(observation["power"]):
-            freq=(channel_iter*0.1)+0.8
-            freq_list=path_loss_pd["frequency"].tolist()
+        Capacity= self.calc_capacity(self._channels, self._transmittance, self._distance) # new capacity
 
 
-            freq=self.take_closest(freq_list, freq)
-
-            path_loss = path_loss_pd[path_loss_pd["frequency"] == freq]["loss"]
-            noise_power = noise_power_pd[noise_power_pd["frequency"] == freq]["noise"]
+        reward = Capacity - self._capacity #positive reward if capacity increased, negative reward if capacity decreased
 
 
-            SNR= (power_iter*path_loss)/noise_power
-
-            Capacity+=0.1*log2(1+SNR)
-
-        reward = Capacity
 
 
+
+        rng = np.random.random()
+        if rng < (self.freq_of_movement / 2):
+            self._distance = np.clip(
+                self._distance + 1, 0, 10
+            )
+        elif (self.freq_of_movement / 2) < rng < (self.freq_of_movement / 2):
+            self._distance = np.clip(
+                self._distance - 1, 0, 10
+            )
+
+        self._transmittance = self.channel_info(self._distance)
+
+        self._capacity=Capacity #assign new capacity as the observation
 
 
         observation = self._get_obs()
-        #info = self._get_info()
+        info = self._get_info()
 
 
         #return observation, reward, terminated, False, info
 
         #might return "truncuated=True" after certain numher of
 
-        return observation, reward, False, False
+
+
+        return observation, reward, False, False, info
+"""
+setup(
+    name="gym_examples",
+    version="0.0.1",
+    install_requires=["gymnasium==0.26.0", "pandas", "numpy"],
+)
+"""

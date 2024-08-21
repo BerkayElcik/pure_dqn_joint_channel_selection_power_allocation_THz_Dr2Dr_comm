@@ -1,16 +1,22 @@
 #import gym
 import gymnasium as gym
+from gymnasium.wrappers import FlattenObservation
 
 import numpy as np
-from dqn_agent import DQNAgent
-from utils import plot_learning_curve, make_env
+from dqn_agent_72 import DQNAgent
+from utils import plot_learning_curve
 #from gym import wrappers
 from gymnasium import wrappers
+from terahertz_drone_environment import thz_drone_env
 
 if __name__ == '__main__':
     #env = make_env('CUSTOM_ENV(not_ready)')
-    env = gym.make('CUSTOM_ENV(not_ready)')
-    best_score = -np.inf
+    #env = gym.make('CUSTOM_ENV(not_ready)')
+    env=thz_drone_env(n_channels=1217, P_T=1, freq_of_movement=0.1)
+    env = FlattenObservation(env)
+
+
+    best_capacity = -np.inf
     load_checkpoint = False
     n_games = 5000
 
@@ -22,10 +28,29 @@ if __name__ == '__main__':
                      chkpt_dir='models/', algo='DQNAgent',
                      env_name='PongNoFrameskip-v4')
     """
-    agent = DQNAgent(input_dims=(env.observation_space.shape),
-                     n_actions=env.action_space.n,
+
+    num_actions = np.prod(env.action_space.nvec)
+
+
+
+    #print(np.random.choice(env.action_space))
+    print(env.action_space.sample())
+    print(env.observation_space.shape)
+    print(env.action_space.shape)
+    print(env.observation_space.shape[0])
+    print(env.action_space.nvec)
+    print(num_actions)
+    print(env.action_space.sample())
+    print(env.observation_space.sample())
+    print(env.observation_space.sample().size)
+
+
+    agent = DQNAgent(input_dims=env.observation_space.shape[0],
+                     n_actions=num_actions,
+                     mem_size=2000,
                      chkpt_dir='models/', algo='DQNAgent',
-                     env_name='CUSTOM_ENV(not_ready)')
+                     env_name='THz_channel_selection')
+
 
 
     if load_checkpoint:
@@ -43,13 +68,20 @@ if __name__ == '__main__':
 
     for i in range(n_games):
         done = False
-        observation = env.reset()
+        observation, info = env.reset()
+        print("obsmain")
+        print(observation)
+        print(len(observation))
+        print(info)
 
-        score = 0
+        Capacity = 0
         while not done:
             action = agent.choose_action(observation)
-            observation_, reward, done, info = env.step(action)
-            score += reward
+            observation_, reward, terminated, truncated, info = env.step(action)
+            print("obs_main")
+            print(observation_)
+            print(len(observation_))
+            Capacity += reward
 
             if not load_checkpoint:
                 agent.store_transition(observation, action,
@@ -57,11 +89,11 @@ if __name__ == '__main__':
                 agent.learn()
             observation = observation_
             n_steps += 1
-        scores.append(score)
+        scores.append(Capacity)
         steps_array.append(n_steps)
 
         avg_score = np.mean(scores[-100:])
-        print('episode: ', i,'score: ', score,
+        print('episode: ', i,'Capacity: ', Capacity,
              ' average score %.1f' % avg_score, 'best score %.2f' % best_score,
             'epsilon %.2f' % agent.epsilon, 'steps', n_steps)
 

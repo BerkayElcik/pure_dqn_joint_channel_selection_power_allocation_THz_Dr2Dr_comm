@@ -1,7 +1,9 @@
 import numpy as np
 import torch as T
-from deep_q_network import DeepQNetwork
-from replay_memory import ReplayBuffer
+from deep_q_network_72 import DeepQNetwork
+from replay_memory_72 import ReplayBuffer
+from math import sqrt
+from utils import cartesian
 
 class DQNAgent(object):
     def __init__(self, n_actions, input_dims, gamma=0.99, epsilon=1, lr=0.001,
@@ -21,6 +23,7 @@ class DQNAgent(object):
         self.chkpt_dir = chkpt_dir
         self.action_space = [i for i in range(n_actions)]
         self.learn_step_counter = 0
+        self.mem_size=mem_size
 
         self.memory = ReplayBuffer(mem_size, input_dims, n_actions)
 
@@ -35,12 +38,19 @@ class DQNAgent(object):
                                     chkpt_dir=self.chkpt_dir)
 
     def choose_action(self, observation):
+        self.epsilon=0 #for debugging
         if np.random.random() > self.epsilon:
             state = T.tensor([observation],dtype=T.float).to(self.q_eval.device)
             actions = self.q_eval.forward(state)
-            action = T.argmax(actions).item()
+            action_index=T.argmax(actions).item()
+            action_index_array=np.arange(sqrt(self.n_actions))
+            action_index_arrays=[action_index_array, action_index_array]
+            action_mat=cartesian(action_index_arrays)
+            action=action_mat[action_index]
+
+
         else:
-            action = np.random.choice(self.action_space)
+            action = np.array([-23,-23])
 
         return action
 
@@ -82,13 +92,14 @@ class DQNAgent(object):
         self.q_prime.load_checkpoint()
 
     def learn(self):
-        """
+
         if self.memory.mem_cntr < self.batch_size:
             return
+
         """
         if self.memory.mem_cntr < self.mem_size:
             return
-
+        """
 
         self.q_eval.optimizer.zero_grad()
 
