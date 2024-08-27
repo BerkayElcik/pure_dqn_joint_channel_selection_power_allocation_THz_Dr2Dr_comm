@@ -6,7 +6,7 @@ from math import sqrt
 from utils import cartesian
 
 class DQNAgent(object):
-    def __init__(self, n_actions, input_dims, gamma=0.99, epsilon=1, lr=0.001,
+    def __init__(self, n_actions, input_dims, gamma=0.999, epsilon=1, lr=0.001,
                  mem_size=2000, batch_size=256, eps_min= 0.01, eps_dec=5e-7,
                  replace=100, algo=None, env_name=None, chkpt_dir='tmp/dqn'):
         self.gamma = gamma
@@ -39,7 +39,9 @@ class DQNAgent(object):
 
     def choose_action(self, observation):
         #self.epsilon=0 #for debugging
+        channels = observation[:50]
         if np.random.random() > self.epsilon:
+            """
             state = T.tensor([observation],dtype=T.float).to(self.q_eval.device)
             actions = self.q_eval.forward(state)
             action_index=T.argmax(actions).item()
@@ -48,8 +50,57 @@ class DQNAgent(object):
             action_mat=cartesian(action_index_arrays)
             action=action_mat[action_index]
             action=action.astype(np.int32)
+            """
+
+            state = T.tensor([observation], dtype=T.float).to(self.q_eval.device)
+            actions = self.q_eval.forward(state)
+            #action_index = T.argmax(actions).item()
+            mult_action_indices=T.topk(actions, 2500).indices
+            action_indices=mult_action_indices[0]
+
+            action_index_array = np.arange(sqrt(self.n_actions))
+            action_index_arrays = [action_index_array, action_index_array]
+            action_mat = cartesian(action_index_arrays)
+
+            action_index = action_indices[0].item()
+
+            action = action_mat[action_index]
+            action = action.astype(np.int32)
+            print(action)
 
 
+
+
+            """
+            print("ayayyaayya")
+            print(mult_action_indices)
+            print(action)
+            print(action_index)
+            print(channels)
+            print(channels[action[0]]==1)
+            print(channels[action[1]]==0)
+            print((channels[action[0]]==1 or channels[action[1]]==0))
+            """
+
+
+
+            n=1
+            while ((action[0]!=0 and channels[action[0]-1]==1) or (action[1]!=0 and channels[action[1]-1]==0)):
+                action_index=action_indices[n].item()
+                action = action_mat[action_index]
+                action = action.astype(np.int32)
+                n+=1
+                print("*****************FINDING NEW ACTION****************")
+                print(action)
+                """
+                print(action)
+                print(action_index)
+                print(channels[action[0]] == 1)
+                print(channels[action[1]] == 0)
+                print((channels[action[0]] == 1 or channels[action[1]] == 0))
+                """
+
+            print("-------------------------------<FOUND IT>-------------------------------------")
 
         else:
             action_index=np.random.randint(0,self.n_actions-1)
@@ -58,6 +109,12 @@ class DQNAgent(object):
             action_mat = cartesian(action_index_arrays)
             action = action_mat[action_index]
             action = action.astype(np.int32)
+
+            while ((action[0] != 0 and channels[action[0] - 1] == 1) or (
+                    action[1] != 0 and channels[action[1] - 1] == 0)):
+                action_index = np.random.randint(0, self.n_actions - 1)
+                action = action_mat[action_index]
+                action = action.astype(np.int32)
 
         return action, action_index
 

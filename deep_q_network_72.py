@@ -31,7 +31,13 @@ class DeepQNetwork(nn.Module):
         layer1=F.relu(self.fc1(state))
         layer2 = F.relu(self.fc2(layer1))
         layer3 = F.relu(self.fc3(layer2))
-        actions = T.tanh(self.fc4(layer3))
+        #actions = T.tanh(self.fc4(layer3))
+        #Tanh could be better if we return to the previous approach of selecting 0 or 1 for every channel on every step
+        actions = self.fc4(layer3)
+        """
+        print("actions in forward")
+        print(actions)
+        """
 
 
         return actions

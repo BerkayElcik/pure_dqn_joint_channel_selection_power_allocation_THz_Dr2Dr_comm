@@ -25,6 +25,8 @@ class ReplayBuffer(object):
         print(state[0].shape)
         print(state[0])
         """
+
+
         self.state_memory[index] = state
         self.new_state_memory[index] = state_
         self.action_memory[index] = action

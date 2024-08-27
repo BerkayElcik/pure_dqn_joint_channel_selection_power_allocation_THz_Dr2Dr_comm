@@ -22,8 +22,9 @@ from setuptools import setup
 class thz_drone_env(gym.Env):
     #metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 4}
 
-    def __init__(self, render_mode=None, n_channels=1217, P_T=1, freq_of_movement=0.1):
+    def __init__(self, render_mode=None, n_channels=50, P_T=1, freq_of_movement=0.1):
 
+        """
         path0 = r"data_LBLRTM/LBLRTM_H1_0.1_H2_0.1_ZANGLE_90_RANGE_km_0.001_Season_6_data.csv"
         path0 = path0.replace('\\', '\\\\')
 
@@ -56,6 +57,20 @@ class thz_drone_env(gym.Env):
 
         path10 = r"data_LBLRTM/LBLRTM_H1_0.1_H2_0.1_ZANGLE_90_RANGE_km_0.101_Season_6_data.csv"
         path10 = path10.replace('\\', '\\\\')
+        """
+
+        path_freq="data_ITU/freqs_0.75_0.8.csv"
+        path_loss="data_ITU/loss_matrix_0.75_0.8.csv"
+        path_noise="data_ITU/noise_matrix_0.75_0.8.csv"
+
+        freq_pd=pd.read_csv(path_freq)
+        loss_pd=pd.read_csv(path_loss)
+        noise_pd=pd.read_csv(path_noise)
+
+        self.freqs_array=freq_pd.to_numpy()
+        self.loss_array=loss_pd.to_numpy()
+        self.noise_array=noise_pd.to_numpy()
+
 
 
 
@@ -63,6 +78,7 @@ class thz_drone_env(gym.Env):
         self.P_T=P_T
         self.freq_of_movement=freq_of_movement
 
+        """
         self.transmittance0 = pd.read_csv(path0, header=None)
         self.transmittance0 = self.transmittance0.set_axis(['vapor', 'transmittance'], axis=1)
         self.transmittance1 = pd.read_csv(path1, header=None)
@@ -85,6 +101,7 @@ class thz_drone_env(gym.Env):
         self.transmittance9 = self.transmittance9.set_axis(['vapor', 'transmittance'], axis=1)
         self.transmittance10 = pd.read_csv(path10, header=None)
         self.transmittance10 = self.transmittance10.set_axis(['vapor', 'transmittance'], axis=1)
+        """
 
 
 
@@ -92,13 +109,16 @@ class thz_drone_env(gym.Env):
         self.observation_space = spaces.Dict(
             {
                 "channels": spaces.MultiBinary(self.n_channels),
-                # n_channels(0.75 THz - 4.4 THz) as center frequencies for 0.3 GHz wide boxes
-                "distance": spaces.Discrete(11),# 0.001 km, 0.011 km, 0.021 km, 0.031 km, 0.041 km, 0.051 km, 0.061 km, 0.071 km, 0.081 km, 0.091 km, 0.101 km
-                "transmittance": spaces.Box(0, 1, shape=(self.n_channels,), dtype=np.float32),
-                #"capacity": spaces.Box(10e-4,10e4, dtype=np.int64)
+                #"distance": spaces.Discrete(11),# 0.001 km, 0.011 km, 0.021 km, 0.031 km, 0.041 km, 0.051 km, 0.061 km, 0.071 km, 0.081 km, 0.091 km, 0.101 km
+                "distance": spaces.Box(low=1,high=11, dtype=np.int32),
+                "loss": spaces.Box(low=0,high=1e18, shape=(self.n_channels,), dtype=np.float32),
+                "noise": spaces.Box(low=3e-12, high=5e-12, shape=(self.n_channels,), dtype=np.float32),
+
             }
         )
-
+        # n_channels(0.75 THz - 4.4 THz) as center frequencies for 0.3 GHz wide boxes
+        # "transmittance": spaces.Box(0, 1, shape=(self.n_channels,), dtype=np.float32),
+        # "capacity": spaces.Box(10e-4,10e4, dtype=np.int64)
 
         """
         self.observation_space = spaces.Dict(
@@ -162,7 +182,9 @@ class thz_drone_env(gym.Env):
         return {
             "channels": self._channels,
             "distance": self._distance,
-            "transmittance": self._transmittance,
+            #"transmittance": self._transmittance,
+            "loss": self._loss,
+            "noise": self._noise,
         }
 
     def _get_info(self):
@@ -264,6 +286,7 @@ class thz_drone_env(gym.Env):
         if distance is None:
             distance = self._distance
 
+        """
         if distance == 0:
             transmittance = self.transmittance0
         elif distance == 1:
@@ -290,9 +313,19 @@ class thz_drone_env(gym.Env):
         transmittance=transmittance["transmittance"].to_numpy()
 
         transmittance=transmittance[:1217]
-
+        
         return transmittance
+        """
 
+        loss = self.loss_array[distance-1]
+        noise= self.noise_array[distance-1]
+
+
+
+
+        return loss, noise
+
+    """
     def calc_path_gain(self, freq, tau, distance=None):
         if distance is None:
             distance = self._distance
@@ -308,9 +341,9 @@ class thz_drone_env(gym.Env):
 
     def calc_noise_power(self, tau, T0):
 
-        """
-        integral kısmını sor
-        """
+       
+        #integral kısmını sor
+        
 
         boltzman_constant=1.38e-23
 
@@ -320,25 +353,31 @@ class thz_drone_env(gym.Env):
         noise_power=boltzman_constant*T_noise*0.0003
 
         return noise_power
+        
+    """
 
 
-    def calc_capacity(self, channel_obs, transmittance, distance):
+    def calc_capacity(self, channel_obs, loss, noise):
 
         if channel_obs is None:
             channel_obs = self._channels
-        if transmittance is None:
-            transmittance=self._transmittance
-        if distance is None:
-            distance=self._distance
+        if loss is None:
+            loss=self._loss
+        if noise is None:
+           noise=self._noise
 
         power_alloc=self.EP(channel_obs, self.P_T)
+
 
 
         Capacity=0
         for channel_iter, power_iter in enumerate(power_alloc):
 
-            freq=(channel_iter*0.0003)+0.75
-
+            """
+            freq=(channel_iter*0.001)+0.75
+            print(freq)
+            
+            
             tau=transmittance[channel_iter]
 
             path_gain=self.calc_path_gain(freq, tau, distance)
@@ -346,8 +385,12 @@ class thz_drone_env(gym.Env):
             temprature=14+273 #average temprature 1 km above sea level in Kelvin
 
             noise_power=self.calc_noise_power(tau, T0=temprature)
+            """
 
-            SNR= (power_iter*path_gain)/noise_power
+            path_loss=loss[channel_iter]
+            noise_power=noise[channel_iter]
+
+            SNR= power_iter/(path_loss*noise_power)
 
             Capacity+=0.1*math.log2(1+SNR)
 
@@ -392,7 +435,10 @@ class thz_drone_env(gym.Env):
 
         self._distance=self.np_random.integers(0, 11, dtype=np.int32)
 
-        self._transmittance = self.channel_info(self._distance)
+        #self._transmittance = self.channel_info(self._distance)
+        self._loss, self._noise = self.channel_info(self._distance)
+
+
 
         """
         print("reset observation")
@@ -405,7 +451,7 @@ class thz_drone_env(gym.Env):
         """
 
 
-        self._capacity = self.calc_capacity(self._channels, self._transmittance, self._distance)
+        self._capacity = self.calc_capacity(self._channels, self._loss, self._noise)
 
 
         observation = self._get_obs()
@@ -414,14 +460,19 @@ class thz_drone_env(gym.Env):
         #print(info)
 
 
+
+
         #return observation, info
         return observation, info
 
     def step(self, action):
         # if this does not work, take observation as an input to step function
 
+        """
         if action[0]==-23 and action[1]==-23:
             action=self.action_space.sample()
+        """
+
 
 
 
@@ -458,8 +509,13 @@ class thz_drone_env(gym.Env):
 
 
 
+
         self._channels = np.clip(
             self._channels+added_channels-removed_channels, 0, 1)
+
+
+        self._channels=self._channels.astype(np.int32)
+
 
 
 
@@ -473,7 +529,7 @@ class thz_drone_env(gym.Env):
 
 
 
-        Capacity= self.calc_capacity(self._channels, self._transmittance, self._distance) # new capacity
+        Capacity= self.calc_capacity(self._channels, self._loss, self._noise) # new capacity
 
 
         reward = Capacity - self._capacity #positive reward if capacity increased, negative reward if capacity decreased
@@ -492,7 +548,7 @@ class thz_drone_env(gym.Env):
                 self._distance - 1, 0, 10
             )
 
-        self._transmittance = self.channel_info(self._distance)
+        self._loss, self._noise = self.channel_info(self._distance)
 
         self._capacity=Capacity #assign new capacity as the observation
 
@@ -504,6 +560,8 @@ class thz_drone_env(gym.Env):
         #return observation, reward, terminated, False, info
 
         #might return "truncuated=True" after certain numher of
+
+
 
 
 

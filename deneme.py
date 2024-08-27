@@ -2,6 +2,7 @@
 import pandas as pd
 import os
 import numpy as np
+import matplotlib.pyplot as plt
 
 path0 = r"data_LBLRTM/LBLRTM_H1_0.1_H2_0.1_ZANGLE_90_RANGE_km_0.001_Season_6_data.csv"
 
@@ -73,3 +74,68 @@ print(type(4))
 
 print("kkkkkkkkkk")
 print(np.random.randint(0,500))
+
+
+
+
+path_freq="data_ITU/freqs_0.75_0.8.csv"
+path_loss="data_ITU/loss_matrix_0.75_0.8.csv"
+path_noise="data_ITU/noise_matrix_0.75_0.8.csv"
+
+freq_pd=pd.read_csv(path_freq)
+loss_pd=pd.read_csv(path_loss)
+noise_pd=pd.read_csv(path_noise)
+
+freqs_array=freq_pd.to_numpy()
+loss_array=loss_pd.to_numpy()
+noise_array=noise_pd.to_numpy()
+
+print(loss_array)
+print("aaaaarrrrr")
+print(loss_array[1])
+
+
+print(loss_array.max())
+print(loss_array.min())
+
+print(noise_array.max())
+print(noise_array.min())
+
+print(int(3e+12))
+
+
+
+arr1=np.random.randint(15,size=15)
+arr2=np.random.randint(15,size=15)
+
+k=len(arr1)
+
+x=np.arange(k)
+
+print(x)
+print(arr1)
+print(arr2)
+
+fname="arr1"
+figure_file = 'plots/' + fname + '.png'
+filename=figure_file
+
+
+fig=plt.figure()
+
+
+plt.scatter(x, arr1, color="C0")
+plt.savefig(filename)
+plt.show()
+
+
+fname="arr2"
+figure_file = 'plots/' + fname + '.png'
+filename=figure_file
+
+
+
+plt.figure()
+plt.scatter(x, arr2, color="C1")
+plt.savefig(filename)
+plt.show()

@@ -1,4 +1,4 @@
 ITU data
 
 has 0.1 GHz resolution, not 1GHz
-has multiples of the same frequencies in ReqFreq_THz variable
+has multiples of the same frequencies in ReqFreq_THz variable(just realized its because they are shown as rounded)
