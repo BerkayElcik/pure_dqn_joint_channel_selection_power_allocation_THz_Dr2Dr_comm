@@ -18,7 +18,7 @@ if __name__ == '__main__':
 
     best_capacity = -np.inf
     load_checkpoint = False
-    n_games = 5000
+    n_games = 22
 
     """
     agent = DQNAgent(gamma=0.99, epsilon=1, lr=0.0001,
@@ -32,7 +32,7 @@ if __name__ == '__main__':
     num_actions = np.prod(env.action_space.nvec)
 
 
-
+    """
     #print(np.random.choice(env.action_space))
     print(env.action_space.sample())
     print(env.observation_space.shape)
@@ -43,7 +43,7 @@ if __name__ == '__main__':
     print(env.action_space.sample())
     print(env.observation_space.sample())
     print(env.observation_space.sample().size)
-
+    """
 
     agent = DQNAgent(input_dims=env.observation_space.shape[0],
                      n_actions=num_actions,
@@ -69,33 +69,51 @@ if __name__ == '__main__':
     for i in range(n_games):
         done = False
         observation, info = env.reset()
+        """
         print("obsmain")
         print(observation)
         print(len(observation))
         print(info)
+        """
 
-        Capacity = 0
-        while not done:
-            action = agent.choose_action(observation)
+        Score = 0
+        #while not done:
+        for i in range(10000):
+            action, action_index = agent.choose_action(observation)
             observation_, reward, terminated, truncated, info = env.step(action)
+            print("---------------------OBSERVATION---------------------")
+            print(observation)
+            print("---------------------ACTION---------------------")
+            print(action)
+            print("---------------------NEXT OBSERVATION---------------------")
+            print(observation_)
+            print("---------------------REWARD---------------------")
+            print(reward)
+            print("---------------------INFO---------------------")
+            print(info)
+            """
             print("obs_main")
             print(observation_)
             print(len(observation_))
-            Capacity += reward
+            """
+            Score += reward
+
+            print("---------------------SCORE---------------------")
+            print(Score)
 
             if not load_checkpoint:
-                agent.store_transition(observation, action,
+                agent.store_transition(observation, action, action_index,
                                      reward, observation_, done)
                 agent.learn()
             observation = observation_
             n_steps += 1
-        scores.append(Capacity)
+        scores.append(Score)
         steps_array.append(n_steps)
 
         avg_score = np.mean(scores[-100:])
-        print('episode: ', i,'Capacity: ', Capacity,
+        print('episode: ', i,'Capacity: ', info["capacity"], 'Score: ', Score,
              ' average score %.1f' % avg_score, 'best score %.2f' % best_score,
-            'epsilon %.2f' % agent.epsilon, 'steps', n_steps)
+            'epsilon %.2f' % agent.epsilon, 'steps', n_steps, "no of channels:", info['no_of_channels'])
 
         if avg_score > best_score:
             if not load_checkpoint:

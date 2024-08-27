@@ -12,8 +12,8 @@ class DeepQNetwork(nn.Module):
         self.checkpoint_file = os.path.join(self.checkpoint_dir, name)
 
 
-        print("input_dims")
-        print(input_dims)
+        #print("input_dims")
+        #print(input_dims)
         self.fc1 = nn.Linear(input_dims, 300)
         self.fc2 = nn.Linear(300, 200)
         self.fc3 = nn.Linear(200, 100)
@@ -31,7 +31,7 @@ class DeepQNetwork(nn.Module):
         layer1=F.relu(self.fc1(state))
         layer2 = F.relu(self.fc2(layer1))
         layer3 = F.relu(self.fc3(layer2))
-        actions = F.tanh(self.fc4(layer3))
+        actions = T.tanh(self.fc4(layer3))
 
 
         return actions

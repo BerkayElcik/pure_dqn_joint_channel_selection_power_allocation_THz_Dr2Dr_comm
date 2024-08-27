@@ -24,37 +24,37 @@ class thz_drone_env(gym.Env):
 
     def __init__(self, render_mode=None, n_channels=1217, P_T=1, freq_of_movement=0.1):
 
-        path0 = r"data/LBLRTM_H1_0.1_H2_0.1_ZANGLE_90_RANGE_km_0.001_Season_6_data.csv"
+        path0 = r"data_LBLRTM/LBLRTM_H1_0.1_H2_0.1_ZANGLE_90_RANGE_km_0.001_Season_6_data.csv"
         path0 = path0.replace('\\', '\\\\')
 
-        path1 = r"data/LBLRTM_H1_0.1_H2_0.1_ZANGLE_90_RANGE_km_0.011_Season_6_data.csv"
+        path1 = r"data_LBLRTM/LBLRTM_H1_0.1_H2_0.1_ZANGLE_90_RANGE_km_0.011_Season_6_data.csv"
         path1 = path1.replace('\\', '\\\\')
 
-        path2 = r"data/LBLRTM_H1_0.1_H2_0.1_ZANGLE_90_RANGE_km_0.021_Season_6_data.csv"
+        path2 = r"data_LBLRTM/LBLRTM_H1_0.1_H2_0.1_ZANGLE_90_RANGE_km_0.021_Season_6_data.csv"
         path2 = path2.replace('\\', '\\\\')
 
-        path3 = r"data/LBLRTM_H1_0.1_H2_0.1_ZANGLE_90_RANGE_km_0.031_Season_6_data.csv"
+        path3 = r"data_LBLRTM/LBLRTM_H1_0.1_H2_0.1_ZANGLE_90_RANGE_km_0.031_Season_6_data.csv"
         path3 = path3.replace('\\', '\\\\')
 
-        path4 = r"data/LBLRTM_H1_0.1_H2_0.1_ZANGLE_90_RANGE_km_0.041_Season_6_data.csv"
+        path4 = r"data_LBLRTM/LBLRTM_H1_0.1_H2_0.1_ZANGLE_90_RANGE_km_0.041_Season_6_data.csv"
         path4 = path4.replace('\\', '\\\\')
 
-        path5 = r"data/LBLRTM_H1_0.1_H2_0.1_ZANGLE_90_RANGE_km_0.051_Season_6_data.csv"
+        path5 = r"data_LBLRTM/LBLRTM_H1_0.1_H2_0.1_ZANGLE_90_RANGE_km_0.051_Season_6_data.csv"
         path5 = path5.replace('\\', '\\\\')
 
-        path6 = r"data/LBLRTM_H1_0.1_H2_0.1_ZANGLE_90_RANGE_km_0.061_Season_6_data.csv"
+        path6 = r"data_LBLRTM/LBLRTM_H1_0.1_H2_0.1_ZANGLE_90_RANGE_km_0.061_Season_6_data.csv"
         path6 = path6.replace('\\', '\\\\')
 
-        path7 = r"data/LBLRTM_H1_0.1_H2_0.1_ZANGLE_90_RANGE_km_0.071_Season_6_data.csv"
+        path7 = r"data_LBLRTM/LBLRTM_H1_0.1_H2_0.1_ZANGLE_90_RANGE_km_0.071_Season_6_data.csv"
         path7 = path7.replace('\\', '\\\\')
 
-        path8 = r"data/LBLRTM_H1_0.1_H2_0.1_ZANGLE_90_RANGE_km_0.081_Season_6_data.csv"
+        path8 = r"data_LBLRTM/LBLRTM_H1_0.1_H2_0.1_ZANGLE_90_RANGE_km_0.081_Season_6_data.csv"
         path8 = path8.replace('\\', '\\\\')
 
-        path9 = r"data/LBLRTM_H1_0.1_H2_0.1_ZANGLE_90_RANGE_km_0.091_Season_6_data.csv"
+        path9 = r"data_LBLRTM/LBLRTM_H1_0.1_H2_0.1_ZANGLE_90_RANGE_km_0.091_Season_6_data.csv"
         path9 = path9.replace('\\', '\\\\')
 
-        path10 = r"data/LBLRTM_H1_0.1_H2_0.1_ZANGLE_90_RANGE_km_0.101_Season_6_data.csv"
+        path10 = r"data_LBLRTM/LBLRTM_H1_0.1_H2_0.1_ZANGLE_90_RANGE_km_0.101_Season_6_data.csv"
         path10 = path10.replace('\\', '\\\\')
 
 
@@ -153,7 +153,7 @@ class thz_drone_env(gym.Env):
             }
         )
         """
-        self.action_space = spaces.MultiDiscrete([self.n_channels+1, self.n_channels+1])
+        self.action_space = spaces.MultiDiscrete([self.n_channels+1, self.n_channels+1], dtype=np.int32)
 
 
 
@@ -211,19 +211,19 @@ class thz_drone_env(gym.Env):
         # Ensure it's a numpy array
         channels_obs = np.array(channels_obs)
 
-        print("channels_obs"+str(channels_obs))
-        print(channels_obs.shape)
+        #print("channels_obs"+str(channels_obs))
+        #print(channels_obs.shape)
 
         # Number of active channels
         active_channels = np.sum(channels_obs)
 
-        print("active_channels"+str(active_channels))
+        #print("active_channels"+str(active_channels))
 
         # If no active channels, no power is allocated
         if active_channels == 0:
             return np.zeros_like(channels_obs)
 
-        print("initial"+str(np.zeros_like(channels_obs)))
+        #print("initial"+str(np.zeros_like(channels_obs)))
 
         # Initialize power allocation
         power_allocation = np.zeros_like(channels_obs, dtype=np.float32)
@@ -231,7 +231,7 @@ class thz_drone_env(gym.Env):
         # Equal power distribution to active channels (for simplicity)
         power_per_channel = total_power / active_channels
 
-        print("power_per_channel"+str(power_per_channel))
+        #print("power_per_channel"+str(power_per_channel))
 
         # Allocate power to active channels (where channel_obs == 1)
         power_allocation[channels_obs == 1] = power_per_channel
@@ -368,6 +368,15 @@ class thz_drone_env(gym.Env):
                 changed_channel[disc]=1
         return changed_channel
 
+    def bin_list_single_action(self, num, m=None):
+        if m is None:
+            m = self.n_channels
+        changed_channel = np.zeros(m)
+        if num != -1:
+            changed_channel[num]=1
+        return changed_channel
+
+
 
 
 
@@ -385,6 +394,7 @@ class thz_drone_env(gym.Env):
 
         self._transmittance = self.channel_info(self._distance)
 
+        """
         print("reset observation")
         print(self._channels)
         print(self._channels.size)
@@ -392,15 +402,16 @@ class thz_drone_env(gym.Env):
         print(self._distance.size)
         print(self._transmittance)
         print(self._transmittance.size)
+        """
 
 
         self._capacity = self.calc_capacity(self._channels, self._transmittance, self._distance)
 
 
         observation = self._get_obs()
-        print(observation)
+        #print(observation)
         info = self._get_info()
-        print(info)
+        #print(info)
 
 
         #return observation, info
@@ -415,7 +426,7 @@ class thz_drone_env(gym.Env):
 
 
 
-        print("action"+str(action))
+        #print("action"+str(action))
 
         #observation=self._get_obs()
         info=self._get_info()
@@ -427,14 +438,25 @@ class thz_drone_env(gym.Env):
         self._capacity= info["capacity"] #old capacity
 
 
+
         added_channels_array=action[0]
         added_channels_array -= 1
         removed_channels_array=action[1]
         removed_channels_array -= 1
 
 
+
+        # if multiple channels are added and removed per action
+        """
         added_channels=self.bin_array(added_channels_array)
         removed_channels=self.bin_array(removed_channels_array)
+        """
+
+        # if one channel is added and removed per action
+        added_channels = self.bin_list_single_action(added_channels_array)
+        removed_channels = self.bin_list_single_action(removed_channels_array)
+
+
 
         self._channels = np.clip(
             self._channels+added_channels-removed_channels, 0, 1)

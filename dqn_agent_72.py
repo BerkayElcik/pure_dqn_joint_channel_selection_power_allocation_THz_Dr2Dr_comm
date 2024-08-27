@@ -38,7 +38,7 @@ class DQNAgent(object):
                                     chkpt_dir=self.chkpt_dir)
 
     def choose_action(self, observation):
-        self.epsilon=0 #for debugging
+        #self.epsilon=0 #for debugging
         if np.random.random() > self.epsilon:
             state = T.tensor([observation],dtype=T.float).to(self.q_eval.device)
             actions = self.q_eval.forward(state)
@@ -47,27 +47,43 @@ class DQNAgent(object):
             action_index_arrays=[action_index_array, action_index_array]
             action_mat=cartesian(action_index_arrays)
             action=action_mat[action_index]
+            action=action.astype(np.int32)
+
 
 
         else:
-            action = np.array([-23,-23])
+            action_index=np.random.randint(0,self.n_actions-1)
+            action_index_array = np.arange(sqrt(self.n_actions))
+            action_index_arrays = [action_index_array, action_index_array]
+            action_mat = cartesian(action_index_arrays)
+            action = action_mat[action_index]
+            action = action.astype(np.int32)
 
-        return action
+        return action, action_index
 
-    def store_transition(self, state, action, reward, state_, done):
-        self.memory.store_transition(state, action, reward, state_, done)
+    def store_transition(self, state, action, action_index, reward, state_, done):
+        self.memory.store_transition(state, action, action_index, reward, state_, done)
 
     def sample_memory(self):
-        state, action, reward, new_state, done = \
+        state, action, action_index, reward, new_state, done = \
                                 self.memory.sample_buffer(self.batch_size)
+
+
+        state = state.astype(np.float32)
+        action = np.vstack(action).astype(np.int32)
+        new_state=new_state.astype(np.float32)
+
+
 
         states = T.tensor(state).to(self.q_eval.device)
         rewards = T.tensor(reward).to(self.q_eval.device)
         dones = T.tensor(done).to(self.q_eval.device)
         actions = T.tensor(action).to(self.q_eval.device)
+        action_indices = T.tensor(action_index).to(self.q_eval.device)
         states_ = T.tensor(new_state).to(self.q_eval.device)
 
-        return states, actions, rewards, states_, dones
+
+        return states, actions, action_indices, rewards, states_, dones
 
     def replace_target_network(self):
         if self.learn_step_counter % self.replace_target_cnt == 0:
@@ -105,10 +121,22 @@ class DQNAgent(object):
 
         self.replace_target_network()
 
-        states, actions, rewards, states_, dones = self.sample_memory()
+        states, actions, action_indices, rewards, states_, dones = self.sample_memory()
         indices = np.arange(self.batch_size)
 
-        q_pred = self.q_eval.forward(states)[indices, actions]
+
+
+        """
+        #index of the action  is 
+        
+        n_channels*actions[0]+actions[1]
+
+        or
+        
+        #sqrt(n_actions)*actions[0]+actions[1]
+        """
+
+        q_pred = self.q_eval.forward(states)[indices, action_indices.long()]
         q_prime = self.q_prime.forward(states_).max(dim=1)[0]
 
         q_prime[dones] = 0.0

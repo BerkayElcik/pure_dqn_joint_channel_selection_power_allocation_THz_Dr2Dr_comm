@@ -3,7 +3,7 @@ import pandas as pd
 import os
 import numpy as np
 
-path0 = r"data/LBLRTM_H1_0.1_H2_0.1_ZANGLE_90_RANGE_km_0.001_Season_6_data.csv"
+path0 = r"data_LBLRTM/LBLRTM_H1_0.1_H2_0.1_ZANGLE_90_RANGE_km_0.001_Season_6_data.csv"
 
 print(path0)
 path0 = path0.replace('\\', '\\\\')
@@ -70,3 +70,6 @@ array2=bin_array(array2, m=30)
 print(array2)
 
 print(type(4))
+
+print("kkkkkkkkkk")
+print(np.random.randint(0,500))
