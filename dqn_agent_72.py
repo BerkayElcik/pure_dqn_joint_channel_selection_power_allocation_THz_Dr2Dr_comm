@@ -6,8 +6,9 @@ from math import sqrt
 from utils import cartesian
 
 class DQNAgent(object):
+    #eps_dec=5e-7
     def __init__(self, n_actions, input_dims, gamma=0.999, epsilon=1, lr=0.001,
-                 mem_size=2000, batch_size=256, eps_min= 0.01, eps_dec=5e-7,
+                 mem_size=2000, batch_size=256, eps_min= 0.01, eps_dec=24e-7,
                  replace=100, algo=None, env_name=None, chkpt_dir='tmp/dqn'):
         self.gamma = gamma
         self.epsilon = epsilon
