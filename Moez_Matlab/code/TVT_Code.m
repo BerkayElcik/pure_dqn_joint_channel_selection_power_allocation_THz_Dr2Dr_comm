@@ -1,13 +1,10 @@
 clear; clc; close all
-%berkay count
-berkay_count=0;
 % Transmitted Power
 TxPower_dBmW = 24;% dBm;
 %% TVT 3D antenna continuous Frequency Range
-StartFreqTHz = 0.75;
-StopFreqTHz = 0.8;
-%NumPoints = 3000;
-NumPoints=50;
+StartFreqTHz = 0.5;
+StopFreqTHz = 1;
+NumPoints = 3000;
 Freq_THz = linspace(StartFreqTHz, StopFreqTHz, NumPoints); % 
 %% Trajectory parameters
 RealSimulatedFlag = 1;% 0: Real, 1: Simulated
@@ -184,7 +181,7 @@ for kk = 1:length(x_mobility_t)
     BeamWidthOptFlag = 0;% 0: WBO, 1: BO
     PowerAllocFlag = 0;% 0: EP, 1: WF
     [CapOut,FreqTHz_Tx,BeamWidthRx_deg_max,...
-    BeamWidthTx_deg_max,SNRout_dB,GainTotal,Rate,berkay_count] = Distance_to_Cap_Opt(...
+    BeamWidthTx_deg_max,SNRout_dB,GainTotal,Rate] = Distance_to_Cap_Opt(...
         PowerAllocFlag,TxPower_dBmW,...
         CoordRx,CoordTx,...
         StartFreqTHz,StopFreqTHz,...
@@ -192,7 +189,7 @@ for kk = 1:length(x_mobility_t)
         AEtypeTx,BeamWidthTx_deg,SideLobeStrengthTx,...
         thetaTxBoreSight_deg,phiTxBoreSight_deg,...
         thetaRxBoreSight_deg,phiRxBoreSight_deg,...
-        BandWidthOptFlag,BeamWidthOptFlag,Freq_THz,berkay_count);
+        BandWidthOptFlag,BeamWidthOptFlag,Freq_THz);
     %% 
     [thetaRx_deg,phiRx_deg] = Coord2ThetaPhi(CoordTx,CoordRx);
     delta_thetaRx_deg = AcuteAngle(thetaRxBoreSight_deg,thetaRx_deg);

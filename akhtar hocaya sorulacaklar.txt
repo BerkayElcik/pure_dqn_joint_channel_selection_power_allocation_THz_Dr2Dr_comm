@@ -1,0 +1,6 @@
+Max Active'de kaç farklı SNR değeri deniyoruz, hangilerini deniyoruz
+
+we can either calculate the max snr on each step and 
+divide between max-snr and 0 to 70 intervals
+and choose a threhold that way
+or choose between predetermined snr values

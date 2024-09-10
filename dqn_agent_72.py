@@ -42,17 +42,15 @@ class DQNAgent(object):
         #self.epsilon=0 #for debugging
         channels = observation[:50]
         if np.random.random() > self.epsilon:
-            """
+
             state = T.tensor([observation],dtype=T.float).to(self.q_eval.device)
             actions = self.q_eval.forward(state)
             action_index=T.argmax(actions).item()
-            action_index_array=np.arange(sqrt(self.n_actions))
-            action_index_arrays=[action_index_array, action_index_array]
-            action_mat=cartesian(action_index_arrays)
-            action=action_mat[action_index]
+            action=action_index
             action=action.astype(np.int32)
-            """
 
+
+            """
             state = T.tensor([observation], dtype=T.float).to(self.q_eval.device)
             actions = self.q_eval.forward(state)
             #action_index = T.argmax(actions).item()
@@ -69,7 +67,7 @@ class DQNAgent(object):
             action = action.astype(np.int32)
             print(action)
 
-
+            """
 
 
             """
@@ -83,8 +81,7 @@ class DQNAgent(object):
             print((channels[action[0]]==1 or channels[action[1]]==0))
             """
 
-
-
+            """
             n=1
             while ((action[0]!=0 and channels[action[0]-1]==1) or (action[1]!=0 and channels[action[1]-1]==0)):
                 action_index=action_indices[n].item()
@@ -93,18 +90,17 @@ class DQNAgent(object):
                 n+=1
                 print("*****************FINDING NEW ACTION****************")
                 print(action)
-                """
-                print(action)
-                print(action_index)
-                print(channels[action[0]] == 1)
-                print(channels[action[1]] == 0)
-                print((channels[action[0]] == 1 or channels[action[1]] == 0))
-                """
+            
 
             print("-------------------------------<FOUND IT>-------------------------------------")
-
+            """
         else:
             action_index=np.random.randint(0,self.n_actions-1)
+            action=action_index
+            action = action.astype(np.int32)
+
+
+            """
             action_index_array = np.arange(sqrt(self.n_actions))
             action_index_arrays = [action_index_array, action_index_array]
             action_mat = cartesian(action_index_arrays)
@@ -116,6 +112,7 @@ class DQNAgent(object):
                 action_index = np.random.randint(0, self.n_actions - 1)
                 action = action_mat[action_index]
                 action = action.astype(np.int32)
+            """
 
         return action, action_index
 

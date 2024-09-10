@@ -22,7 +22,7 @@ from setuptools import setup
 class thz_drone_env(gym.Env):
     #metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 4}
 
-    def __init__(self, render_mode=None, n_channels=50, P_T=1, freq_of_movement=0.1):
+    def __init__(self, render_mode=None, n_channels=3000, P_T=1, freq_of_movement=0.1, no_of_actions=70):
 
         """
         path0 = r"data_LBLRTM/LBLRTM_H1_0.1_H2_0.1_ZANGLE_90_RANGE_km_0.001_Season_6_data.csv"
@@ -59,13 +59,14 @@ class thz_drone_env(gym.Env):
         path10 = path10.replace('\\', '\\\\')
         """
 
-        path_freq="data_ITU/freqs_0.75_0.8.csv"
-        path_loss="data_ITU/loss_matrix_0.75_0.8.csv"
-        path_noise="data_ITU/noise_matrix_0.75_0.8.csv"
+        path_freq="data_ITU/freqs_0.5_1.csv"
+        path_loss="data_ITU/loss_matrix_0.5_1.csv"
+        path_noise="data_ITU/noise_matrix_0.5_1.csv"
 
-        freq_pd=pd.read_csv(path_freq)
-        loss_pd=pd.read_csv(path_loss)
-        noise_pd=pd.read_csv(path_noise)
+
+        freq_pd=pd.read_csv(path_freq,header=None)
+        loss_pd=pd.read_csv(path_loss,header=None)
+        noise_pd=pd.read_csv(path_noise,header=None)
 
         self.freqs_array=freq_pd.to_numpy()
         self.loss_array=loss_pd.to_numpy()
@@ -77,6 +78,7 @@ class thz_drone_env(gym.Env):
         self.n_channels = n_channels
         self.P_T=P_T
         self.freq_of_movement=freq_of_movement
+        self.no_of_actions=no_of_actions
 
         """
         self.transmittance0 = pd.read_csv(path0, header=None)
@@ -110,9 +112,9 @@ class thz_drone_env(gym.Env):
             {
                 "channels": spaces.MultiBinary(self.n_channels),
                 #"distance": spaces.Discrete(11),# 0.001 km, 0.011 km, 0.021 km, 0.031 km, 0.041 km, 0.051 km, 0.061 km, 0.071 km, 0.081 km, 0.091 km, 0.101 km
-                "distance": spaces.Box(low=1,high=11, dtype=np.int32),
+                "distance": spaces.Discrete(11, start=1, dtype=np.int32),
                 "loss": spaces.Box(low=0,high=1e18, shape=(self.n_channels,), dtype=np.float32),
-                "noise": spaces.Box(low=3e-12, high=5e-12, shape=(self.n_channels,), dtype=np.float32),
+                "noise": spaces.Box(low=1e-14, high=1e-12, shape=(self.n_channels,), dtype=np.float32),
 
             }
         )
@@ -173,7 +175,7 @@ class thz_drone_env(gym.Env):
             }
         )
         """
-        self.action_space = spaces.MultiDiscrete([self.n_channels+1, self.n_channels+1], dtype=np.int32)
+        self.action_space = spaces.Discrete(self.no_of_actions, dtype=np.int32)
 
 
 
@@ -190,7 +192,9 @@ class thz_drone_env(gym.Env):
     def _get_info(self):
         return {
             "no_of_channels": np.sum(self._channels),
-            "capacity": self._capacity
+            "capacity": self._capacity,
+            "max_snr": self._max_snr,
+            "SNR_list": self._snr_list
         }
     """
     def pow_30(self, channels_obs=None, power_obs=None):
@@ -368,9 +372,9 @@ class thz_drone_env(gym.Env):
 
         power_alloc=self.EP(channel_obs, self.P_T)
 
-
-
         Capacity=0
+        SNR_list=[]
+
         for channel_iter, power_iter in enumerate(power_alloc):
 
             """
@@ -392,10 +396,15 @@ class thz_drone_env(gym.Env):
 
             SNR= power_iter/(path_loss*noise_power)
 
+            SNR_list.append(SNR)
+
+
             Capacity+=0.1*math.log2(1+SNR)
 
-        return Capacity
+        max_snr=max(SNR_list)
 
+        return Capacity, max_snr, SNR_list
+    """
     def bin_array(self, array, m=None):
         #only input numpy array or a single value, never input list, dict, tuple etc
         #written the code like this in case I want to return back to the version where the agent adds or removes severel channels in a single action
@@ -418,6 +427,38 @@ class thz_drone_env(gym.Env):
         if num != -1:
             changed_channel[num]=1
         return changed_channel
+    """
+
+
+
+    def action2threshold(self, action):
+        """
+        if max_snr==None:
+            max_snr=self._max_snr
+        #won't use max_snr in the current algorithm
+        """
+
+        predetermined_starting_value_for_s=20
+        start=predetermined_starting_value_for_s
+        delta_s=start/(self.no_of_actions-1)
+        threshold=action*delta_s
+        return threshold
+
+    def threshold2channels(self, channel_obs, threshold, snr_list):
+        if channel_obs is None:
+            channel_obs = self._channels
+        if snr_list is None:
+            snr_list=self._snr_list
+
+        channel_snr=np.zeros_like(channel_obs)
+
+        channel_snr[channel_obs == 1] = snr_list
+
+        selected_channels = np.where(channel_snr > threshold, 1, 0)
+
+
+
+        return selected_channels
 
 
 
@@ -427,7 +468,10 @@ class thz_drone_env(gym.Env):
         # We need the following line to seed self.np_random
         super().reset(seed=seed)
 
-        self._channels=self.np_random.integers(0, 2, size=self.n_channels, dtype=np.int32)
+        #self._channels=self.np_random.integers(0, 2, size=self.n_channels, dtype=np.int32)
+        self._channels=np.ones(shape=(1,self.n_channels), dtype=np.int32)
+
+
         #self._power = self.np_random.integers(0, self.P_T, size=self.n_channels, dtype=int)
         #self._power=self.pow_30(self._channels, self._power)
 
@@ -451,7 +495,7 @@ class thz_drone_env(gym.Env):
         """
 
 
-        self._capacity = self.calc_capacity(self._channels, self._loss, self._noise)
+        self._capacity, self._max_snr, self._snr_list= self.calc_capacity(self._channels, self._loss, self._noise)
 
 
         observation = self._get_obs()
@@ -466,12 +510,15 @@ class thz_drone_env(gym.Env):
         return observation, info
 
     def step(self, action):
-        # if this does not work, take observation as an input to step function
+
+
 
         """
         if action[0]==-23 and action[1]==-23:
             action=self.action_space.sample()
         """
+
+
 
 
 
@@ -487,33 +534,11 @@ class thz_drone_env(gym.Env):
         #self._distance = observation["distance"]
 
         self._capacity= info["capacity"] #old capacity
+        self._max_snr= info["max_snr"]
 
 
-
-        added_channels_array=action[0]
-        added_channels_array -= 1
-        removed_channels_array=action[1]
-        removed_channels_array -= 1
-
-
-
-        # if multiple channels are added and removed per action
-        """
-        added_channels=self.bin_array(added_channels_array)
-        removed_channels=self.bin_array(removed_channels_array)
-        """
-
-        # if one channel is added and removed per action
-        added_channels = self.bin_list_single_action(added_channels_array)
-        removed_channels = self.bin_list_single_action(removed_channels_array)
-
-
-
-
-        self._channels = np.clip(
-            self._channels+added_channels-removed_channels, 0, 1)
-
-
+        threshold = self.action2threshold(action)
+        self._channels=self.threshold2channels(self._channels, threshold, self._snr_list)
         self._channels=self._channels.astype(np.int32)
 
 
@@ -524,12 +549,7 @@ class thz_drone_env(gym.Env):
         #self._power = self.pow_30(self._channels, self._power)
 
 
-
-        #terminated = np.array_equal(self._agent_location, self._target_location)
-
-
-
-        Capacity= self.calc_capacity(self._channels, self._loss, self._noise) # new capacity
+        Capacity, self._max_snr, self._snr_list= self.calc_capacity(self._channels, self._loss, self._noise) # new capacity
 
 
         reward = Capacity - self._capacity #positive reward if capacity increased, negative reward if capacity decreased

@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 if __name__ == '__main__':
     #env = make_env('CUSTOM_ENV(not_ready)')
     #env = gym.make('CUSTOM_ENV(not_ready)')
-    env=thz_drone_env(n_channels=50, P_T=1, freq_of_movement=0.1)
+    env=thz_drone_env(n_channels=3000, P_T=1, freq_of_movement=0.1, no_of_actions=70)
 
     env = FlattenObservation(env)
 
